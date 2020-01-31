@@ -49,24 +49,28 @@ class ADMM:
         self.end = time.clock()
 
         #RESIDUALS
-        self.r_prim = r_prim
-        self.r_dual = r_dual
+        self.r_prim = self.pd.r_prim
+        self.r_dual = self.pd.r_dual
 
         #TITLE
-        self.title = title
+        self.title = self.pd.title
 
         #KNOWN PARAMETERS
         self.mu = self.pd.mu
         self.M = self.pd.M
         self.f = self.pd.f
         self.w = self.pd.w
+        self.W = self.pd.W
+        self.q = self.pd.q
 
         #PROBLEM DIMENSIONS
         self.dim1 = 3
         self.m = self.pd.m
         self.n = self.pd.n
+        self.n_c = self.m / self.dim1
 
         #UNKNOWN VARIABLES
+        self.u = self.pd.u
 
     def plot(self):
         R = [np.linalg.norm(k) for k in self.r_prim]
@@ -87,10 +91,10 @@ class ADMM:
         plt.show()
 
     def projection(self, vector):
-        vector_per_contact = np.split(vector, self.m / self.dim1)
+        vector_per_contact = np.split(vector, self.n_c)
         projected = np.array([])
 
-        for i in range(int(self.m / self.dim1)):
+        for i in range(int(self.n_c)):
             mui = self.mu[i]
             x1 = vector_per_contact[i][0]
             normx2 = np.linalg.norm(vector_per_contact[i][1:])
@@ -107,4 +111,15 @@ class ADMM:
 
         return projected
 
-    def
+    def Gs_matrix(self):
+        E_ = np.array([])
+
+        u_per_contact = np.split(self.u, self.n_c)
+
+        for i in range(self.n_c):
+            E_ = np.concatenate(E_, np.array([1, 0, 0]) * self.mu[i] * np.linalg.norm(u_per_contact[i][1:]))
+        E = E_[:, np.newaxis]
+
+        return np.squeeze(E)
+
+
