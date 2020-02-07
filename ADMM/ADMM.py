@@ -20,19 +20,16 @@ import time
 
 # Import data
 from ADMM.data import *
-# from Data.read_fclib import *
 
 # Initial penalty parameter
-import Solver.Rho.Optimal
+import ADMM.Solver.Rho
 
 # Max iterations and kind of tolerance
-from Solver.Tolerance.iter_totaltolerance import *
+from ADMM.Solver.Tolerance.iter_tolerance import *
 
 # b = Es matrix
-from Data.Es_matrix import *
 
-# Projection onto second order cone
-from Solver.ADMM_iteration.Numerics.projection import *
+
 
 
 # problem data is a class with all the parameters needed to solve the FCP
@@ -121,5 +118,9 @@ class ADMM:
         E = E_[:, np.newaxis]
 
         return np.squeeze(E)
+
+    def
+
+
 
 
