@@ -59,6 +59,7 @@ class ADMM:
         self.w = self.pd.w
         self.W = self.pd.W
         self.q = self.pd.q
+        self.Id = self.pd.Id
 
         #PROBLEM DIMENSIONS
         self.dim1 = 3
@@ -68,6 +69,14 @@ class ADMM:
 
         #UNKNOWN VARIABLES
         self.u = self.pd.u
+        self.r = self.pd.r
+        self.p = self.pd.p
+        self.s = self.pd.s
+        self.x = self.pd.x
+
+        #OTHERS
+        A = self.W + self.rho_method * csc_matrix(self.Id)
+        self.LU = linalg.splu(A)
 
     def plot(self):
         R = [np.linalg.norm(k) for k in self.r_prim]
@@ -119,7 +128,25 @@ class ADMM:
 
         return np.squeeze(E)
 
-    def
+    def r_update(self, k):
+        RHS = -self.q + self.s + self.rho_method * csc_matrix(self.p[k] - self.x[k])
+        self.r.append(self.LU.solve(RHS))
+        return self.r
+
+    def p_update(self, k):
+        vector = self.r[k] + self.x[k]
+        self.p.append(self.projection(vector))
+        return self.p
+
+    def x_update(self, k):
+        self.x.append(self.x[k] + self.r[k+1] - self.p[k+1])
+        return self.x
+
+    def residuals_update(self, k):
+        self.r_prim.append(self.r[k+1] - self.p[k+1])
+        self.r_dual.append(self.rho_method * csc_matrix.dot(self.Id, (self.p[k] - self.p[k+1])))
+
+    def stop_criteria(self):
 
 
 

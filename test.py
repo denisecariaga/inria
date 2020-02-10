@@ -23,3 +23,8 @@ LU = linalg.splu(M_new)
 b = np.array([1, 2, 3])
 print(np.shape(np.array([1, 2, 3])))
 print(LU.solve(np.array([1, 2, 3])))
+
+H = np.ones((6, 5))
+print(H)
+print(H.transpose())
+print(type(H))
