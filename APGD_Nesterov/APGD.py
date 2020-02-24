@@ -37,8 +37,7 @@ class APGD:
         return self.r[k-1] + ((k - 2) / (k + 1)) * (self.r[k-1] - self.r[k-2])
 
     def update_r(self, k):
-        aqui hacer bien la multiplicacion matricial de W*v
-        self.r[k].append(self.project(self.accelerate(k) - self.rho * (self.W * self.accelerate(k) + self.q)))
+        self.r[k].append(self.project(self.accelerate(k) - self.rho * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
 
 
 class Datos:
@@ -75,4 +74,3 @@ class Rho:
     def acary_rho(self):
         return np.linalg.norm(self.M, ord = 1) / np.linalg.norm(self.H, ord = 1)
 
-    def variant_rho(self):
