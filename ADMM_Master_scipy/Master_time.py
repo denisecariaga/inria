@@ -33,13 +33,13 @@ all_solvers = ['cp_N', 'cp_R', 'cp_RR', 'vp_N_He', 'vp_R_He', 'vp_RR_He', 'vp_N_
 
 
 # Definition of list
-dict_master = []
+list_master = []
 rho_optimal = ['acary', 'dicairano', 'ghadimi', 'normal']
 
 # Time problem/solver
 for each_problem in all_problems:
     print('---' + each_problem + '---')
-    dict_problem = []
+    list_problem = []
     for each_solver in all_solvers:
         dict_solver = {'problem': each_problem, 'solver': each_solver}
         for each_rho in rho_optimal:
@@ -51,8 +51,8 @@ for each_problem in all_problems:
                 timing = np.nan  # NaN
             print(timing)
             dict_solver[each_rho + ' (time)'] = timing
-        dict_problem.append(dict_solver)
-    dict_master.append(dict_problem)
+        list_problem.append(dict_solver)
+    list_master.append(list_problem)
 
 # Save the data
-pickle.dump(dict_master, open("time_solver.p", "wb"))
+pickle.dump(list_master, open("time_solver.p", "wb"))

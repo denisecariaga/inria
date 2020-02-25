@@ -11,19 +11,19 @@ import time
 class ProblemData:
     def __init__(self):
         # m sized variables
-        self.r = np.zeros((6,1))
-        self.p = np.zeros((6,1))
-        self.s = np.zeros((6,1))
-        self.x = np.zeros((6,1))
+        self.r = np.zeros((6, 1))
+        self.p = np.zeros((6, 1))
+        self.s = np.zeros((6, 1))
+        self.x = np.zeros((6, 1))
 
         # mxn sized matrix
         self.H = np.ones((6, 5))
 
         # nxn sized matrix
-        self.M = np.arange(1,26).reshape(5,5)
+        self.M = np.arange(1, 26).reshape(5, 5)
 
         # n sized parameters
-        self.f = np.ones((5,1))
+        self.f = np.ones((5, 1))
 
         # mxm sized matrix
         self.Id = np.identity(6)

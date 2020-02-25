@@ -4,7 +4,21 @@ from math import sqrt
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 
 
-class APGD:
+class Data:
+    def __init__(self):
+        self.W = np.ones(3)
+        self.r = np.array([0, 0, 0])
+        self.M = np.ones(3)
+        self.H = np.ones(3)
+        self.q = np.array([0, 0, 0])
+        self.f = np.array([0, 0, 0])
+        self.s = np.array([0, 0, 0])
+        self.n = np.size(self.f)
+        self.m = np.size(self.r)
+        self.nc = self.m / 3
+
+
+class APGDMethod:
     def __init__(self, r, W, q, n_c, mu, rho):
         self.r = r
         self.W = W
@@ -37,12 +51,8 @@ class APGD:
         return self.r[k-1] + ((k - 2) / (k + 1)) * (self.r[k-1] - self.r[k-2])
 
     def update_r(self, k):
-        self.r[k].append(self.project(self.accelerate(k) - self.rho * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
-
-
-class Datos:
-    def __init__(self):
-        self.W = np.ones(3)
+        self.r[k].append(self.project(
+            self.accelerate(k) - self.rho * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
 
 
 class Rho:
@@ -72,5 +82,5 @@ class Rho:
         return sqrt(min(linalg.eigs(self.M)) * max(linalg.eigs(self.M)))
 
     def acary_rho(self):
-        return np.linalg.norm(self.M, ord = 1) / np.linalg.norm(self.H, ord = 1)
+        return np.linalg.norm(self.M, ord=1) / np.linalg.norm(self.H, ord=1)
 

@@ -28,3 +28,9 @@ H = np.ones((6, 5))
 print(H)
 print(H.transpose())
 print(type(H))
+
+
+lista = ['a', 'b', 'c']
+
+for i in range(len(lista)):
+    print(i)

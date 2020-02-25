@@ -3,8 +3,7 @@ import h5py
 import numpy
 
 
-def hdf5_file(problem_data) \
-        :
+def hdf5_file(problem_data):
     filename = os.getcwd() + '/ADMM/Data/box_stacks/' + problem_data  # LMGC_GFC3D_CubeH8
 
     # filename = os.getcwd()+'/Data/Box_Stacks-i0024-642-53.hdf5' #Box_Stacks-i0024-642-53
