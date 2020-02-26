@@ -73,14 +73,22 @@ class Rho:
         return 1 / np.linalg.norm(self.W)
 
     def eigen_w_rho(self):
-        return 1 / max(linalg.eigs(self.W))
+        eig, eigv = linalg.eigs(self.W)
+        eig_max = np.absolute(np.amax(eig))
+        return 1 / eig_max
 
     def ghadimi_rho(self):
-        return 1 / sqrt(max(linalg.eigs(self.W)) * min(linalg.eigs(self.W)))
+        eig, eig_v = linalg.eigs(self.W)
+        eig_max = np.absolute(np.amax(eig))
+        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
+        return 1 / sqrt(eig_max * eig_min)
 
     def di_cairamo_rho(self):
-        return sqrt(min(linalg.eigs(self.M)) * max(linalg.eigs(self.M)))
+        eig, eig_v = linalg.eigs(self.M)
+        eig_max = np.absolute(np.amax(eig))
+        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
+        return sqrt(eig_max * eig_min)
 
     def acary_rho(self):
-        return np.linalg.norm(self.M, ord=1) / np.linalg.norm(self.H, ord=1)
+        return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
 
