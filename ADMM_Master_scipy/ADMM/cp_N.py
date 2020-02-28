@@ -77,7 +77,6 @@ def cp_N(problem_data, rho_method):
     e = []  # restart
 
     # Optimal penalty parameter
-    start = time.clock()
     rho_string = 'Solver.Rho.Optimal.' + rho_method + '(A,M,A_T)'
     rho = eval(rho_string)
 

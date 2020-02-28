@@ -16,17 +16,20 @@ class Data:
         self.n = np.size(self.f)
         self.m = np.size(self.r)
         self.nc = self.m / 3
+        self.g = 10**(-6)
 
 
 class APGDMethod:
-    def __init__(self, r, W, q, n_c, mu, rho):
+    def __init__(self, r, W, q, m, n_c, mu, rho, g):
         self.r = r
         self.W = W
         self.q = q
+        self.m = m
         self.n_c = n_c          # m/3
         self.mu = mu
         self.dim1 = 3
         self.rho = rho
+        self.g = g
 
     def project(self, vector):
         vector_per_contact = np.split(vector, self.n_c)
@@ -53,6 +56,15 @@ class APGDMethod:
     def update_r(self, k):
         self.r[k].append(self.project(
             self.accelerate(k) - self.rho * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
+
+    def stop_criteria(self, k, epsilon):
+        res = (1 / (self.m * self.g)) * (self.r[k] - self.project(
+            self.r[k] - self.g * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
+        norm_res = np.linalg.norm(res.toarray(), ord=2)
+        if norm_res < epsilon:
+            return True
+        else:
+            return False
 
 
 class Rho:

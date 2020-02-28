@@ -6,7 +6,6 @@ import pickle
 import sys
 
 
-
 print('ratio_solver.p')
 dict_master = pickle.load(open("ratio_solver.p", "rb"))
 
