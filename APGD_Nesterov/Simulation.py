@@ -19,7 +19,7 @@ rhos = [Rho.normal_rho(), Rho.smaller_rho(), Rho.w_rho(), Rho.eigen_w_rho(), Rho
 ################### IMPORTING APGD METHOD for each rho ##################
 for problem in problems:
 	##################### IMPORTING DATA ######################
-	data = APGD.Data()
+	data = APGD.Data(problem)
 
 	r = data.r
 	W = data.W
@@ -35,4 +35,5 @@ for problem in problems:
 	tau = 0
 	d = 0
 	for rho in rhos:
-		Method = APGD.APGDMethod()
+		Method = APGD.APGDMethod(data, rho)
+

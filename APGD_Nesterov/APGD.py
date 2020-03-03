@@ -3,137 +3,177 @@ from time import time
 from math import sqrt
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 from ADMM.Data.read_fclib import *
+import random
 
 
 class Data:
-    def __init__(self, problem_data):
-	    problem = hdf5_file(problem_data)
+	def __init__(self, problem_data):
+		problem = hdf5_file(problem_data)
 
-	    M = problem.M.tocsc()
-	    f = problem.f
-	    A = csc_matrix.transpose(problem.H.tocsc())
-	    A_T = csr_matrix.transpose(A)
-	    w = problem.w
-	    mu = problem.mu
+		M = problem.M.tocsc()
+		f = problem.f
+		A = csc_matrix.transpose(problem.H.tocsc())
+		A_T = csr_matrix.transpose(A)
+		w = problem.w
+		mu = problem.mu
 
-	    # Dimensions (normal,tangential,tangential)
-	    dim1 = 3
-	    dim2 = np.shape(w)[0]
+		# Dimensions (normal,tangential,tangential)
+		dim1 = 3
+		dim2 = np.shape(w)[0]
 
-	    # Problem size
-	    n = np.shape(M)[0]
-	    p = np.shape(w)[0]
+		# Problem size
+		n = np.shape(M)[0]
+		p = np.shape(w)[0]
 
-	    b = 0.1 * Es_matrix(w, mu, np.ones([p, ])) / np.linalg.norm(Es_matrix(w, mu, np.ones([p, ])))
+		b = 0.1 * Es_matrix(w, mu, np.ones([p, ])) / np.linalg.norm(Es_matrix(w, mu, np.ones([p, ])))
 
-	    #################################
-	    ############# SET-UP ############
-	    #################################
+		#################################
+		############# SET-UP ############
+		#################################
 
-	    # Set-up of vectors
-	    v = [np.zeros([n, ])]
-	    u = [np.zeros([p, ])]  # this is u tilde, but in the notation of the paper is used as hat [np.zeros([10,0])]
-	    xi = [np.zeros([p, ])]
-	    r = [np.zeros([p, ])]  # primal residual
-	    s = [np.zeros([p, ])]  # dual residual
-	    r_norm = [0]
-	    s_norm = [0]
-        self.W = np.ones(3)
-        self.r = np.array([0, 0, 0])
-        self.M = np.ones(3)
-        self.H = np.ones(3)
-        self.q = np.array([0, 0, 0])
-        self.f = np.array([0, 0, 0])
-        self.s = np.array([0, 0, 0])
-        self.n = np.size(self.f)
-        self.m = np.size(self.r)
-        self.nc = self.m / 3
-        self.g = 10**(-6)
+		# Set-up of vectors
+		v = [np.zeros([n, ])]
+		u = [np.zeros([p, ])]  # this is u tilde, but in the notation of the paper is used as hat [np.zeros([10,0])]
+		xi = [np.zeros([p, ])]
+		r = [np.zeros([p, ])]  # primal residual
+		s = [np.zeros([p, ])]  # dual residual
+		r_norm = [0]
+		s_norm = [0]
+		self.W = np.ones(3)
+		self.r = np.array([0, 0, 0])
+		self.M = np.ones(3)
+		self.H = np.ones(3)
+		self.q = np.array([0, 0, 0])
+		self.f = np.array([0, 0, 0])
+		self.s = np.array([0, 0, 0])
+		self.n = np.size(self.f)
+		self.m = np.size(self.r)
+		self.nc = self.m / 3
+		self.g = 10**(-6)
 
 
 class Rho:
-    def __init__(self, W, M, H):
-        self.W = W
-        self.M = M
-        self.H = H
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
 
-    def normal_rho(self):
-        return 1
+	def normal_rho(self):
+		return 1
 
-    def smaller_rho(self):
-        return 2 / 3
+	def smaller_rho(self):
+		return 2 / 3
 
-    def w_rho(self):
-        return 1 / np.linalg.norm(self.W)
+	def w_rho(self):
+		return 1 / np.linalg.norm(self.W)
 
-    def eigen_w_rho(self):
-        eig, eigv = linalg.eigs(self.W)
-        eig_max = np.absolute(np.amax(eig))
-        return 1 / eig_max
+	def eigen_w_rho(self):
+		eig, eigv = linalg.eigs(self.W)
+		eig_max = np.absolute(np.amax(eig))
+		return 1 / eig_max
 
-    def ghadimi_rho(self):
-        eig, eig_v = linalg.eigs(self.W)
-        eig_max = np.absolute(np.amax(eig))
-        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
-        return 1 / sqrt(eig_max * eig_min)
+	def ghadimi_rho(self):
+		eig, eig_v = linalg.eigs(self.W)
+		eig_max = np.absolute(np.amax(eig))
+		eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
+		return 1 / sqrt(eig_max * eig_min)
 
-    def di_cairamo_rho(self):
-        eig, eig_v = linalg.eigs(self.M)
-        eig_max = np.absolute(np.amax(eig))
-        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
-        return sqrt(eig_max * eig_min)
+	def di_cairamo_rho(self):
+		eig, eig_v = linalg.eigs(self.M)
+		eig_max = np.absolute(np.amax(eig))
+		eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
+		return sqrt(eig_max * eig_min)
 
-    def acary_rho(self):
-        return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
+	def acary_rho(self):
+		return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
 
 
 class APGDMethod:
-    def __init__(self, problem_data, rho_method):
-        self.r = problem_data.r
-        self.W = problem_data.W
-        self.q = problem_data.q
-        self.M = problem_data.M
-        self.H = problem_data.H
-        self.m = problem_data.m
-        self.n_c = problem_data.n_c          # m/3
-        self.mu = problem_data.mu
-        self.dim1 = 3
-        self.rho = Rho(self.W, self.M, self.H).rho_method()
-        self.g = problem_data.g
+	def __init__(self, problem_data, rho_method):
+		self.r = problem_data.r
+		self.W = problem_data.W
+		self.q = problem_data.q
+		self.M = problem_data.M
+		self.H = problem_data.H
+		self.m = problem_data.m
+		self.n_c = problem_data.n_c          # m/3
+		self.mu = problem_data.mu
+		self.dim1 = 3
+		self.rho = Rho(self.W, self.M, self.H).rho_method()
+		self.g = problem_data.g
 
-    def project(self, vector):
-        vector_per_contact = np.split(vector, self.n_c)
-        projected = np.array([])
+	def project(self, vector):
+		vector_per_contact = np.split(vector, self.n_c)
+		projected = np.array([])
 
-        for i in range(int(self.n_c)):
-            mui = self.mu[i]
-            x1 = vector_per_contact[i][0]
-            norm2 = np.linalg.norm(vector_per_contact[i][1:])
+		for i in range(int(self.n_c)):
+			mui = self.mu[i]
+			x1 = vector_per_contact[i][0]
+			norm2 = np.linalg.norm(vector_per_contact[i][1:])
 
-            if norm2 <= (-1 / mui) * x1:
-                projected = np.concatenate((projected, np.zeros([self.dim1, ])))
-            elif norm2 <= mui * x1:
-                projected = np.concatenate((projected, vector_per_contact[i]))
-            else:
-                x2 = vector_per_contact[i][1:]
-                projected = np.concatenate((projected,
-                                            (1 / (1 + mui ** 2)) * (x1 + mui * norm2) * np.concatenate(
-                                                (np.array([1]), mui * x2 * (1 / norm2)))))
+			if norm2 <= (-1 / mui) * x1:
+				projected = np.concatenate((projected, np.zeros([self.dim1, ])))
+			elif norm2 <= mui * x1:
+				projected = np.concatenate((projected, vector_per_contact[i]))
+			else:
+				x2 = vector_per_contact[i][1:]
+				projected = np.concatenate((projected,
+											(1 / (1 + mui ** 2)) * (x1 + mui * norm2) * np.concatenate(
+												(np.array([1]), mui * x2 * (1 / norm2)))))
+		return projected
 
-    def accelerate(self, k):
-        return self.r[k-1] + ((k - 2) / (k + 1)) * (self.r[k-1] - self.r[k-2])
+	def accelerate(self, k):
+		return self.r[k-1] + ((k - 2) / (k + 1)) * (self.r[k-1] - self.r[k-2])
 
-    def update_r(self, k):
-        self.r[k].append(self.project(
-            self.accelerate(k) - self.rho * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
+	def update_r(self, k):
+		self.r[k].append(self.project(
+			self.accelerate(k) - self.rho * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
 
-    def stop_criteria(self, k, epsilon):
-        res = (1 / (self.m * self.g)) * (self.r[k] - self.project(
-            self.r[k] - self.g * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
-        norm_res = np.linalg.norm(res.toarray(), ord=2)
-        if norm_res < epsilon:
-            return True
-        else:
-            return False
+	def stop_criteria(self, k, epsilon):
+		res = (1 / (self.m * self.g)) * (self.r[k] - self.project(
+			self.r[k] - self.g * (csr_matrix.dot(self.W,  self.accelerate(k)) + self.q)))
+		norm_res = np.linalg.norm(res.toarray(), ord=2)
+		if norm_res < epsilon:
+			return True
+		else:
+			return False
 
+	def update_rho_1(self, k, L, L_min, factor, rho_k_minus_1):
+		rho_k = rho_k_minus_1
+		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+		bar_r_k = self.project(vector)
+
+		ratio_k = rho_k * (np.linalg.norm(csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k), ord=2)
+		* (1 / np.linalg.norm(self.r[k] - bar_r_k)))
+		while ratio_k > L:
+			rho_k = factor * rho_k
+			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+			bar_r_k = self.project(vector)
+
+			ratio_k = rho_k * (
+						np.linalg.norm(csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k), ord=2)
+						* (1 / np.linalg.norm(self.r[k] - bar_r_k)))
+		if ratio_k < L_min:
+			rho_k = (1 / factor) * rho_k
+		return rho_k
+
+	def update_rho_2(self, k, L, L_min, factor, rho_k_minus_1):
+		rho_k = rho_k_minus_1
+		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+		bar_r_k = self.project(vector)
+
+		ratio_k = rho_k * (np.transpose(self.r[k] - bar_r_k)
+						   * (csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k))
+						   * ((1 / np.linalg.norm(self.r[k] - bar_r_k))**2))
+		while ratio_k > L:
+			rho_k = factor * rho_k
+			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+			bar_r_k = self.project(vector)
+
+			ratio_k = rho_k * (np.transpose(self.r[k] - bar_r_k)
+							   * (csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k))
+							   * ((1 / np.linalg.norm(self.r[k] - bar_r_k)) ** 2))
+		if ratio_k < L_min:
+			rho_k = (1 / factor) * rho_k
+		return rho_k
 
