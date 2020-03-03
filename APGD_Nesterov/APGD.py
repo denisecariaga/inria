@@ -2,10 +2,42 @@ import numpy as np
 from time import time
 from math import sqrt
 from scipy.sparse import linalg, csr_matrix, csc_matrix
+from ADMM.Data.read_fclib import *
 
 
 class Data:
-    def __init__(self):
+    def __init__(self, problem_data):
+	    problem = hdf5_file(problem_data)
+
+	    M = problem.M.tocsc()
+	    f = problem.f
+	    A = csc_matrix.transpose(problem.H.tocsc())
+	    A_T = csr_matrix.transpose(A)
+	    w = problem.w
+	    mu = problem.mu
+
+	    # Dimensions (normal,tangential,tangential)
+	    dim1 = 3
+	    dim2 = np.shape(w)[0]
+
+	    # Problem size
+	    n = np.shape(M)[0]
+	    p = np.shape(w)[0]
+
+	    b = 0.1 * Es_matrix(w, mu, np.ones([p, ])) / np.linalg.norm(Es_matrix(w, mu, np.ones([p, ])))
+
+	    #################################
+	    ############# SET-UP ############
+	    #################################
+
+	    # Set-up of vectors
+	    v = [np.zeros([n, ])]
+	    u = [np.zeros([p, ])]  # this is u tilde, but in the notation of the paper is used as hat [np.zeros([10,0])]
+	    xi = [np.zeros([p, ])]
+	    r = [np.zeros([p, ])]  # primal residual
+	    s = [np.zeros([p, ])]  # dual residual
+	    r_norm = [0]
+	    s_norm = [0]
         self.W = np.ones(3)
         self.r = np.array([0, 0, 0])
         self.M = np.ones(3)
@@ -19,17 +51,55 @@ class Data:
         self.g = 10**(-6)
 
 
-class APGDMethod:
-    def __init__(self, r, W, q, m, n_c, mu, rho, g):
-        self.r = r
+class Rho:
+    def __init__(self, W, M, H):
         self.W = W
-        self.q = q
-        self.m = m
-        self.n_c = n_c          # m/3
-        self.mu = mu
+        self.M = M
+        self.H = H
+
+    def normal_rho(self):
+        return 1
+
+    def smaller_rho(self):
+        return 2 / 3
+
+    def w_rho(self):
+        return 1 / np.linalg.norm(self.W)
+
+    def eigen_w_rho(self):
+        eig, eigv = linalg.eigs(self.W)
+        eig_max = np.absolute(np.amax(eig))
+        return 1 / eig_max
+
+    def ghadimi_rho(self):
+        eig, eig_v = linalg.eigs(self.W)
+        eig_max = np.absolute(np.amax(eig))
+        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
+        return 1 / sqrt(eig_max * eig_min)
+
+    def di_cairamo_rho(self):
+        eig, eig_v = linalg.eigs(self.M)
+        eig_max = np.absolute(np.amax(eig))
+        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
+        return sqrt(eig_max * eig_min)
+
+    def acary_rho(self):
+        return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
+
+
+class APGDMethod:
+    def __init__(self, problem_data, rho_method):
+        self.r = problem_data.r
+        self.W = problem_data.W
+        self.q = problem_data.q
+        self.M = problem_data.M
+        self.H = problem_data.H
+        self.m = problem_data.m
+        self.n_c = problem_data.n_c          # m/3
+        self.mu = problem_data.mu
         self.dim1 = 3
-        self.rho = rho
-        self.g = g
+        self.rho = Rho(self.W, self.M, self.H).rho_method()
+        self.g = problem_data.g
 
     def project(self, vector):
         vector_per_contact = np.split(vector, self.n_c)
@@ -66,41 +136,4 @@ class APGDMethod:
         else:
             return False
 
-
-class Rho:
-    def __init__(self, W, M, H, tau, d):
-        self.W = W
-        self.M = M
-        self.H = H
-        self.tau = tau
-        self.d = d
-
-    def normal_rho(self):
-        return 1
-
-    def smaller_rho(self):
-        return 2 / 3
-
-    def w_rho(self):
-        return 1 / np.linalg.norm(self.W)
-
-    def eigen_w_rho(self):
-        eig, eigv = linalg.eigs(self.W)
-        eig_max = np.absolute(np.amax(eig))
-        return 1 / eig_max
-
-    def ghadimi_rho(self):
-        eig, eig_v = linalg.eigs(self.W)
-        eig_max = np.absolute(np.amax(eig))
-        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
-        return 1 / sqrt(eig_max * eig_min)
-
-    def di_cairamo_rho(self):
-        eig, eig_v = linalg.eigs(self.M)
-        eig_max = np.absolute(np.amax(eig))
-        eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
-        return sqrt(eig_max * eig_min)
-
-    def acary_rho(self):
-        return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
 

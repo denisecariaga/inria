@@ -21,7 +21,7 @@ def hdf5_file(problem_data):
             pass
         return r
 
-    if (not is_fclib_file(filename)):
+    if not is_fclib_file(filename):
         exit()
 
     class gfc3d:
@@ -86,6 +86,6 @@ def hdf5_file(problem_data):
 
     return problem
 
-    # dense version of the matrices
-    # Mdense = problem.M.todense()
-    # Hdense = problem.H.todense()
+# dense version of the matrices
+# Mdense = problem.M.todense()
+# Hdense = problem.H.todense()
