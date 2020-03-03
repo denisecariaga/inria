@@ -30,43 +30,27 @@ class Data:
 		self.W = csr_matrix.multi_dot(self.H_T, np.linalg.inv(self.M), self.H)
 		self.q = self.w - csr_matrix.multi_dot(self.H_T, np.linalg.inv(self.M), self.f)
 		self.mu = problem.mu
+		self.g = 10**(-6)
+
 
 		# Dimensions (normal,tangential,tangential)
-		dim1 = 3
 		self.m = np.shape(self.w)[0]
-
-		# Problem size
 		self.n = np.shape(self.M)[0]
+		self.nc = self.n / 3
 
-		b = 0.1 * (self.Es_matrix(np.ones([self.m, ])) / np.linalg.norm(self.Es_matrix(np.ones([self.m, ]))))
+		self.s = 0.1 * (self.Es_matrix(np.ones([self.m, ])) / np.linalg.norm(self.Es_matrix(np.ones([self.m, ]))))
 
 		#################################
 		############# SET-UP ############
 		#################################
 
 		# Set-up of vectors
-		v = [np.zeros([n, ])]
-		u = [np.zeros([p, ])]  # this is u tilde, but in the notation of the paper is used as hat [np.zeros([10,0])]
-		xi = [np.zeros([p, ])]
-		r = [np.zeros([p, ])]  # primal residual
-		s = [np.zeros([p, ])]  # dual residual
-		r_norm = [0]
-		s_norm = [0]
+		v = [np.zeros([self.n, ])]
+		self.r = [np.zeros([self.m, ])]  # this is u tilde, but in the notation of the paper is used as hat [np.zeros([10,0])]
+		xi = [np.zeros([self.m, ])]
+		self.res = [np.zeros([self.m, ])]  #  residual
 
-
-		self.W = np.ones(3)
-		self.r = np.array([0, 0, 0])
-		self.M = np.ones(3)
-		self.H = np.ones(3)
-		self.q = np.array([0, 0, 0])
-		self.f = np.array([0, 0, 0])
-		self.s = np.array([0, 0, 0])
-		self.n = np.size(self.f)
-		self.m = np.size(self.r)
-		self.nc = self.m / 3
-		self.g = 10 ** (-6)
-
-
+		self.res_norm = [0]
 
 
 class Rho:
