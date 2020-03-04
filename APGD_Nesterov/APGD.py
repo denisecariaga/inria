@@ -100,7 +100,7 @@ class APGDMethod:
 		self.n_c = problem_data.n_c  # m/3
 		self.mu = problem_data.mu
 		self.dim1 = 3
-		self.rho = Rho(self.W, self.M, self.H).rho_method()
+		self.rho = Rho(self.W, self.M, self.H).rho_method() revisar esto para que evalue la funcion correctamente
 		self.g = problem_data.g
 
 	def project(self, vector):
