@@ -86,3 +86,8 @@ print('done')
 a = [np.zeros([4, ])]
 a.append(np.zeros([4,]))
 print(a[1])
+
+print(len(a))
+
+for i in range(20):
+	print(i)

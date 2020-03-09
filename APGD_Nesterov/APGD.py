@@ -48,10 +48,9 @@ class Data:
 		self.v = [np.zeros([self.n, ])]
 		self.u = [np.zeros([self.m, ])]
 		self.r = [np.zeros([self.m, ]), np.zeros([self.m, ])]
-		self.xi = [np.zeros([self.m, ])]
 		self.res = [np.zeros([self.m, ])]  # residual
 
-		self.res_norm = [0]
+		self.res_norm = [0, 0]
 
 
 ##########################################################
@@ -157,6 +156,8 @@ class APGDMethod:
 		self.v = problem_data.v
 		self.u = problem_data.u
 		self.s = problem_data.s
+		self.res = problem_data.res
+		self.res_norm = problem_data.res_norm
 
 
 	def project(self, vector):
@@ -186,11 +187,13 @@ class APGDMethod:
 		self.r.append(self.project(
 			self.accelerate(k) - self.rho * (csr_matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
 
-	def stop_criteria(self, k):
+	def residual_update(self, k):
 		res = (1 / (self.m * self.g)) * (self.r[k] - self.project(
 			self.r[k] - self.g * (csr_matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
-		norm_res = np.linalg.norm(res.toarray(), ord=2)
-		return res
+		self.res.append(res)
+
+	def norm_update(self, k):
+		self.res_norm.append(np.linalg.norm(self.res[k].toarray(), ord=2))
 
 	# usando radio 1
 	def update_rho_1(self, k, L, L_min, factor, rho_k_minus_1):
@@ -233,13 +236,23 @@ class APGDMethod:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
 
-	def APGD1_N(self, tolerance, iter_max):
+	def APGD_N(self, tolerance, iter_max):
 		k = 2
 		error = inf
 		while error > tolerance and k < iter_max:
 			self.update_r(k)
-			error = self.stop_criteria(k)
+			self.norm_update(k)
+			error = self.res_norm[k]
 			k += 1
+
+	def APGD1_V(self, tolerance, iter_max):
+		pass
+
+	def APGD2_V(self, tolerance, iter_max):
+		pass
+
+	def update_s(self):
+		pass
 
 
 
