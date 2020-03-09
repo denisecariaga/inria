@@ -11,10 +11,9 @@ problems = os.listdir("ADMM/Data/box_stacks/")
 problems.sort()
 
 ##################### IMPORTIND RHO ########################
-Rho = APGD.Rho(W, M, H, tau, d)
 
-rhos = [Rho.normal_rho(), Rho.smaller_rho(), Rho.w_rho(), Rho.eigen_w_rho(), Rho.ghadimi_rho(), Rho.di_cairamo_rho(),
-        Rho.acary_rho()]
+rhos = ['NormalRho', 'SmallerRho', 'WRho', 'EigenWRho', 'GhadimiRho', 'DiCairamoRho', 'AcaryRho']
+
 
 ################### IMPORTING APGD METHOD for each rho ##################
 for problem in problems:

@@ -52,45 +52,95 @@ class Data:
 
 		self.res_norm = [0]
 
+##########################################################
+#################### RHO CLASSES #########################
+##########################################################
 
-class Rho:
+class NormalRho:
 	def __init__(self, W, M, H):
 		self.W = W
 		self.M = M
 		self.H = H
 
-	def normal_rho(self):
+	def rho(self):
 		return 1
 
-	def smaller_rho(self):
+
+class SmallerRho:
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
+
+	def rho(self):
 		return 2 / 3
 
-	def w_rho(self):
+
+class WRho:
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
+
+	def rho(self):
 		return 1 / np.linalg.norm(self.W)
 
-	def eigen_w_rho(self):
+
+class EigenWRho:
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
+
+	def rho(self):
 		eig, eigv = linalg.eigs(self.W)
 		eig_max = np.absolute(np.amax(eig))
 		return 1 / eig_max
 
-	def ghadimi_rho(self):
+
+class GhadimiRho:
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
+
+	def rho(self):
 		eig, eig_v = linalg.eigs(self.W)
 		eig_max = np.absolute(np.amax(eig))
 		eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
 		return 1 / sqrt(eig_max * eig_min)
 
-	def di_cairamo_rho(self):
+
+class DiCairamoRho:
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
+
+	def rho(self):
 		eig, eig_v = linalg.eigs(self.M)
 		eig_max = np.absolute(np.amax(eig))
 		eig_min = np.absolute(np.min(eig[np.nonzero(eig)]))
 		return sqrt(eig_max * eig_min)
 
-	def acary_rho(self):
+
+class AcaryRho:
+	def __init__(self, W, M, H):
+		self.W = W
+		self.M = M
+		self.H = H
+
+	def rho(self):
 		return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
 
 
+##########################################################
+#################### APGD METHOD #########################
+##########################################################
+
+
 class APGDMethod:
-	def __init__(self, problem_data, rho_method):
+	def __init__(self, problem_data, rho_class):
 		self.r = problem_data.r
 		self.W = problem_data.W
 		self.q = problem_data.q
@@ -100,7 +150,7 @@ class APGDMethod:
 		self.n_c = problem_data.n_c  # m/3
 		self.mu = problem_data.mu
 		self.dim1 = 3
-		self.rho = Rho(self.W, self.M, self.H).rho_method() revisar esto para que evalue la funcion correctamente
+		self.rho = rho_class(self.W, self.M, self.H).rho
 		self.g = problem_data.g
 
 	def project(self, vector):

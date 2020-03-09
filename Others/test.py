@@ -34,3 +34,51 @@ lista = ['a', 'b', 'c']
 
 for i in range(len(lista)):
     print(i)
+
+print('ejemplo clases')
+
+class Example:
+    def __init__(self, a):
+        self.a = int(a)
+
+    def funcion1(self, k):
+        return self.a * k
+
+    def funcion2(self, k):
+        return self.a ** k
+
+
+class rho1:
+    def __init__(self, a):
+        self.a = int(a)
+
+    def rho(self, k):
+        return self.a * k
+
+
+class rho2:
+    def __init__(self, a):
+        self.a = a
+
+    def rho(self, k):
+        return self.a ** k
+
+
+class rho3:
+    def __init__(self, a):
+        self.a = a
+
+    def rho(self, k):
+        return self.a + k
+
+
+class Ejecutar2:
+	def __init__(self, clase, a, k):
+		self.funcion = clase(a).rho(k)
+
+
+lista = [rho1, rho2, rho3]
+for elem in lista:
+	print(Ejecutar2(elem, 2, 3).funcion)
+print(Ejecutar2(rho2, 2, 3).funcion)
+print('done')
