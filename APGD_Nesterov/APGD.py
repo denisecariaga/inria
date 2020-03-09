@@ -1,6 +1,6 @@
 import numpy as np
 from time import time
-from math import sqrt
+from math import sqrt, inf
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 
 from ADMM import Es_matrix
@@ -24,33 +24,35 @@ class Data:
 
 		self.M = problem.M.tocsc()
 		self.f = problem.f
-		self.H = csr_matrix.transpose(problem.H.tocsc())
-		self.H_T = csr_matrix.transpose(csr_matrix(self.H))
+		self.H = csc_matrix.transpose(problem.H.tocsc())
+		self.H_T = csr_matrix.transpose(self.H)
 		self.w = problem.w
 		self.W = csr_matrix.multi_dot(self.H_T, np.linalg.inv(self.M), self.H)
 		self.q = self.w - csr_matrix.multi_dot(self.H_T, np.linalg.inv(self.M), self.f)
 		self.mu = problem.mu
-		self.g = 10**(-6)
-
+		self.g = 10 ** (-6)
 
 		# Dimensions (normal,tangential,tangential)
 		self.m = np.shape(self.w)[0]
 		self.n = np.shape(self.M)[0]
 		self.nc = self.n / 3
 
-		self.s = 0.1 * (self.Es_matrix(np.ones([self.m, ])) / np.linalg.norm(self.Es_matrix(np.ones([self.m, ]))))
+		self.s = [1 / linalg.norm(self.H, 'fro') * self.Es_matrix(np.ones([self.m, ])) /
+		          np.linalg.norm(self.Es_matrix(np.ones([self.m, ])))]
 
 		#################################
 		############# SET-UP ############
 		#################################
 
 		# Set-up of vectors
-		v = [np.zeros([self.n, ])]
-		self.r = [np.zeros([self.m, ])]  # this is u tilde, but in the notation of the paper is used as hat [np.zeros([10,0])]
-		xi = [np.zeros([self.m, ])]
-		self.res = [np.zeros([self.m, ])]  #  residual
+		self.v = [np.zeros([self.n, ])]
+		self.u = [np.zeros([self.m, ])]
+		self.r = [np.zeros([self.m, ]), np.zeros([self.m, ])]
+		self.xi = [np.zeros([self.m, ])]
+		self.res = [np.zeros([self.m, ])]  # residual
 
 		self.res_norm = [0]
+
 
 ##########################################################
 #################### RHO CLASSES #########################
@@ -150,8 +152,12 @@ class APGDMethod:
 		self.n_c = problem_data.n_c  # m/3
 		self.mu = problem_data.mu
 		self.dim1 = 3
-		self.rho = rho_class(self.W, self.M, self.H).rho
+		self.rho = rho_class(self.W, self.M, self.H).rho()
 		self.g = problem_data.g
+		self.v = problem_data.v
+		self.u = problem_data.u
+		self.s = problem_data.s
+
 
 	def project(self, vector):
 		vector_per_contact = np.split(vector, self.n_c)
@@ -177,28 +183,26 @@ class APGDMethod:
 		return self.r[k - 1] + ((k - 2) / (k + 1)) * (self.r[k - 1] - self.r[k - 2])
 
 	def update_r(self, k):
-		self.r[k].append(self.project(
-			self.accelerate(k) - self.rho * (csr_matrix.dot(self.W, self.accelerate(k)) + self.q)))
+		self.r.append(self.project(
+			self.accelerate(k) - self.rho * (csr_matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
 
-	def stop_criteria(self, k, epsilon):
+	def stop_criteria(self, k):
 		res = (1 / (self.m * self.g)) * (self.r[k] - self.project(
-			self.r[k] - self.g * (csr_matrix.dot(self.W, self.accelerate(k)) + self.q)))
+			self.r[k] - self.g * (csr_matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
 		norm_res = np.linalg.norm(res.toarray(), ord=2)
-		if norm_res < epsilon:
-			return True
-		else:
-			return False
+		return res
 
+	# usando radio 1
 	def update_rho_1(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
-		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
 		bar_r_k = self.project(vector)
 
 		ratio_k = rho_k * (np.linalg.norm(csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k), ord=2)
 		                   * (1 / np.linalg.norm(self.r[k] - bar_r_k)))
 		while ratio_k > L:
 			rho_k = factor * rho_k
-			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
 			bar_r_k = self.project(vector)
 
 			ratio_k = rho_k * (
@@ -208,9 +212,10 @@ class APGDMethod:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
 
+	# usando radio 2
 	def update_rho_2(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
-		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
 		bar_r_k = self.project(vector)
 
 		ratio_k = rho_k * (np.transpose(self.r[k] - bar_r_k)
@@ -218,7 +223,7 @@ class APGDMethod:
 		                   * ((1 / np.linalg.norm(self.r[k] - bar_r_k)) ** 2))
 		while ratio_k > L:
 			rho_k = factor * rho_k
-			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + self.q)
+			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
 			bar_r_k = self.project(vector)
 
 			ratio_k = rho_k * (np.transpose(self.r[k] - bar_r_k)
@@ -227,3 +232,14 @@ class APGDMethod:
 		if ratio_k < L_min:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
+
+	def APGD1_N(self, tolerance, iter_max):
+		k = 2
+		error = inf
+		while error > tolerance and k < iter_max:
+			self.update_r(k)
+			error = self.stop_criteria(k)
+			k += 1
+
+
+

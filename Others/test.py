@@ -52,33 +52,37 @@ class rho1:
     def __init__(self, a):
         self.a = int(a)
 
-    def rho(self, k):
-        return self.a * k
+    def rho(self):
+        return self.a - 2
 
 
 class rho2:
     def __init__(self, a):
         self.a = a
 
-    def rho(self, k):
-        return self.a ** k
+    def rho(self):
+        return self.a ** 2
 
 
 class rho3:
     def __init__(self, a):
         self.a = a
 
-    def rho(self, k):
-        return self.a + k
+    def rho(self):
+        return self.a * 2
 
 
 class Ejecutar2:
-	def __init__(self, clase, a, k):
-		self.funcion = clase(a).rho(k)
+	def __init__(self, clase, a):
+		self.funcion = clase(a).rho()
 
 
 lista = [rho1, rho2, rho3]
 for elem in lista:
-	print(Ejecutar2(elem, 2, 3).funcion)
-print(Ejecutar2(rho2, 2, 3).funcion)
+	print(Ejecutar2(elem, 4).funcion)
+print(Ejecutar2(rho2, 4).funcion)
 print('done')
+
+a = [np.zeros([4, ])]
+a.append(np.zeros([4,]))
+print(a[1])
