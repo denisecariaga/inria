@@ -3,9 +3,8 @@ from time import time
 from math import sqrt, inf
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 
-from ADMM import Es_matrix
 from ADMM.Data.read_fclib import *
-import random
+
 
 
 class Data:
@@ -47,7 +46,7 @@ class Data:
 		# Set-up of vectors
 		self.v = [np.zeros([self.n, ])]
 		self.u = [np.zeros([self.m, ])]
-		self.r = [np.zeros([self.m, ]), np.zeros([self.m, ])]
+		self.r = [np.zeros([self.m, ])]
 		self.res = [np.zeros([self.m, ])]  # residual
 
 		self.res_norm = [0, 0]
@@ -159,6 +158,7 @@ class APGDMethod:
 		self.res = problem_data.res
 		self.res_norm = problem_data.res_norm
 
+	# Formula for the nonsmooth function of the problem
 	def Es_matrix(self, vector):
 		E_ = np.array([])
 		u_per_contact = np.split(vector, self.nc)
@@ -169,6 +169,7 @@ class APGDMethod:
 
 		return np.squeeze(E)
 
+	# Formula to project a vector into the cone
 	def project(self, vector):
 		vector_per_contact = np.split(vector, self.nc)
 		projected = np.array([])
@@ -204,7 +205,7 @@ class APGDMethod:
 	def norm_update(self, k):
 		self.res_norm.append(np.linalg.norm(self.res[k].toarray(), ord=2))
 
-	# usando radio 1
+	# Updating rho usind radio 1
 	def update_rho_1(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
 		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
@@ -224,7 +225,7 @@ class APGDMethod:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
 
-	# usando radio 2
+	# Updating rho using radio 2
 	def update_rho_2(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
 		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
@@ -245,53 +246,85 @@ class APGDMethod:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
 
-	def APGD_N(self, tolerance, iter_max):
-		for i in range(iter_max):
-			k = 2
+	#############################################################
+	################### SOLVERS OF THE PROBLEM ##################
+	#############################################################
+
+	# Solving the frictional contact problem with fixed rho
+	def APGD_N(self, tolerance_r, tolerance_s, iter_max):
+		# This for is to update the value of s
+		for j in range(1, iter_max):
+			# This while is to solve the problem with s fixed
+			k = 1
 			error = inf
-			while error > tolerance and k < iter_max:
+			while error > tolerance_r and k < iter_max:
 				self.update_r(k)
 				self.norm_update(k)
 				error = self.res_norm[k]
 				k += 1
+			#Updating the value of s
 			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
-			if j == 0:
-				pass
-			else:
-				s_per_contact_i1 = np.split(self.s[i + 1], self.nc)
-				s_per_contact_i0 = np.split(self.s[i], self.nc)
-				count = 0
-				for i in range(self.nc):
-					if np.linalg.norm(b_per_contact_j1[i] - b_per_contact_j0[i]) / np.linalg.norm(
-							b_per_contact_j0[i]) > 1e-02:
-						count += 1
-				if count < 1:
-					break
+			s_per_contact_j1 = np.split(self.s[-1], self.nc)
+			s_per_contact_j0 = np.split(self.s[-2], self.nc)
+			count = 0
+			# Stopping condition of s
+			for i in range(self.nc):
+				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
+						s_per_contact_j0[i]) > tolerance_s:
+					count += 1
+			if count < 1:
+				break
 
-	def APGD1_V(self, tolerance, iter_max):
-		k = 2
-		error = inf
-		self.rho = 1
-		while error > tolerance and k < iter_max:
-			self.rho = self.update_rho_1(k, 0.9, 0.3, 2/3, self.rho)
-			self.update_r(k)
-			self.norm_update(k)
-			error = self.res_norm[k]
-			k += 1
+	# Solving the frictional contact problem with variable rho and ratio 1
+	def APGD1_V(self, tolerance_r, tolerance_s, iter_max):
+		# This for is to update the value of s
+		for j in range(1, iter_max):
+			# This while is to solve the problem with s fixed
+			k = 1
+			error = inf
+			self.rho = 1   # Fixing the first rho
+			while error > tolerance_r and k < iter_max:
+				self.rho = self.update_rho_1(k, 0.9, 0.3, 2/3, self.rho)
+				self.update_r(k)
+				self.norm_update(k)
+				error = self.res_norm[k]
+				k += 1
+			# Updating the value of s
+			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
+			s_per_contact_j1 = np.split(self.s[-1], self.nc)
+			s_per_contact_j0 = np.split(self.s[-2], self.nc)
+			count = 0
+			# Stopping condition of s
+			for i in range(self.nc):
+				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
+						s_per_contact_j0[i]) > tolerance_s:
+					count += 1
+			if count < 1:
+				break
 
-	def APGD2_V(self, tolerance, iter_max):
-		k = 2
-		error = inf
-		self.rho = 1
-		while error > tolerance and k < iter_max:
-			self.rho = self.update_rho_2(k, 0.9, 0.3, 2/3, self.rho)
-			self.update_r(k)
-			self.norm_update(k)
-			error = self.res_norm[k]
-			k += 1
-
-	def update_s(self):
-		pass
-
-
-
+	# Solving the frictional contact problem with variable rho and ratio 2
+	def APGD2_V(self, tolerance_r, tolerance_s, iter_max):
+		# This for is to update the value of s
+		for j in range(1, iter_max):
+			# This while is to solve the problem with s fixed
+			k = 1
+			error = inf
+			self.rho = 1  # Fixing the first rho
+			while error > tolerance_r and k < iter_max:
+				self.rho = self.update_rho_2(k, 0.9, 0.3, 2/3, self.rho)
+				self.update_r(k)
+				self.norm_update(k)
+				error = self.res_norm[k]
+				k += 1
+			# Updating the value of s
+			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
+			s_per_contact_j1 = np.split(self.s[-1], self.nc)
+			s_per_contact_j0 = np.split(self.s[-2], self.nc)
+			count = 0
+			# Stopping condition of s
+			for i in range(self.nc):
+				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
+						s_per_contact_j0[i]) > tolerance_s:
+					count += 1
+			if count < 1:
+				break

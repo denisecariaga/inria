@@ -87,10 +87,13 @@ a = [np.zeros([4, ])]
 a.append(np.zeros([4,]))
 print(a[1])
 
-print(len(a))
 
-for i in range(20):
+
+for i in range(1,20):
 	print(i)
 
-lista1 = [1,2,3,4]
-print(lista1[-1])
+
+
+lista2 = [1, 2]
+print(lista2[-2])
+print(lista2[-1])
