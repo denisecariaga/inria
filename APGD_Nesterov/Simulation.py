@@ -1,5 +1,6 @@
 from APGD_Nesterov import APGD
 import os
+import pickle
 
 NUM_ITER = 1000
 
@@ -7,32 +8,28 @@ NUM_ITER = 1000
 
 ################## IMPORTING PROBLEMS ######################
 
-problems = os.listdir("ADMM/Data/box_stacks/")
+problems = os.listdir("ADMM_Master_scipy/ADMM/Data/box_stacks/")
 problems.sort()
 
-##################### IMPORTIND RHO ########################
+##################### IMPORTING RHO ########################
 
 rhos = ['NormalRho', 'SmallerRho', 'WRho', 'EigenWRho', 'GhadimiRho', 'DiCairamoRho', 'AcaryRho']
 
-
 ################### IMPORTING APGD METHOD for each rho ##################
+list_master = []
+
 for problem in problems:
 	##################### IMPORTING DATA ######################
 	data = APGD.Data(problem)
 
-	r = data.r
-	W = data.W
-	H = data.H
-	q = data.q
-	M = data.M
-	s = data.s
-	f = data.f
-	m = data.m
-	n = data.n
-	nc = data.nc
-
-	tau = 0
-	d = 0
+	dict_solver = {'problem': problem, 'solver': 'APGD_rho_fijo'}
 	for rho in rhos:
-		Method = APGD.APGDMethod(data, rho)
+		timing = APGD.APGDMethod(data, rho)
+		dict_solver[rho+'(time)'] = timing
+	list_master.append(dict_solver)
+
+# Save the data
+pickle.dump(list_master, open('time_solver.p', 'wb'))
+
+
 
