@@ -9,9 +9,9 @@ import random
 
 
 class Data:
-	def Es_matrix(self, u):
+	def Es_matrix(self, vector):
 		E_ = np.array([])
-		u_per_contact = np.split(u, self.nc)
+		u_per_contact = np.split(vector, self.nc)
 
 		for i in range(int(self.nc)):
 			E_ = np.concatenate((E_, np.array([1, 0, 0]) * self.mu[i] * np.linalg.norm(u_per_contact[i][1:])))
@@ -148,7 +148,7 @@ class APGDMethod:
 		self.M = problem_data.M
 		self.H = problem_data.H
 		self.m = problem_data.m
-		self.n_c = problem_data.n_c  # m/3
+		self.nc = problem_data.nc  # m/3
 		self.mu = problem_data.mu
 		self.dim1 = 3
 		self.rho = rho_class(self.W, self.M, self.H).rho()
@@ -159,12 +159,21 @@ class APGDMethod:
 		self.res = problem_data.res
 		self.res_norm = problem_data.res_norm
 
+	def Es_matrix(self, vector):
+		E_ = np.array([])
+		u_per_contact = np.split(vector, self.nc)
+
+		for i in range(int(self.nc)):
+			E_ = np.concatenate((E_, np.array([1, 0, 0]) * self.mu[i] * np.linalg.norm(u_per_contact[i][1:])))
+		E = E_[:, np.newaxis]
+
+		return np.squeeze(E)
 
 	def project(self, vector):
-		vector_per_contact = np.split(vector, self.n_c)
+		vector_per_contact = np.split(vector, self.nc)
 		projected = np.array([])
 
-		for i in range(int(self.n_c)):
+		for i in range(int(self.nc)):
 			mui = self.mu[i]
 			x1 = vector_per_contact[i][0]
 			norm2 = np.linalg.norm(vector_per_contact[i][1:])
@@ -237,19 +246,49 @@ class APGDMethod:
 		return rho_k
 
 	def APGD_N(self, tolerance, iter_max):
+		for i in range(iter_max):
+			k = 2
+			error = inf
+			while error > tolerance and k < iter_max:
+				self.update_r(k)
+				self.norm_update(k)
+				error = self.res_norm[k]
+				k += 1
+			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
+			if j == 0:
+				pass
+			else:
+				s_per_contact_i1 = np.split(self.s[i + 1], self.nc)
+				s_per_contact_i0 = np.split(self.s[i], self.nc)
+				count = 0
+				for i in range(self.nc):
+					if np.linalg.norm(b_per_contact_j1[i] - b_per_contact_j0[i]) / np.linalg.norm(
+							b_per_contact_j0[i]) > 1e-02:
+						count += 1
+				if count < 1:
+					break
+
+	def APGD1_V(self, tolerance, iter_max):
 		k = 2
 		error = inf
+		self.rho = 1
 		while error > tolerance and k < iter_max:
+			self.rho = self.update_rho_1(k, 0.9, 0.3, 2/3, self.rho)
 			self.update_r(k)
 			self.norm_update(k)
 			error = self.res_norm[k]
 			k += 1
 
-	def APGD1_V(self, tolerance, iter_max):
-		pass
-
 	def APGD2_V(self, tolerance, iter_max):
-		pass
+		k = 2
+		error = inf
+		self.rho = 1
+		while error > tolerance and k < iter_max:
+			self.rho = self.update_rho_2(k, 0.9, 0.3, 2/3, self.rho)
+			self.update_r(k)
+			self.norm_update(k)
+			error = self.res_norm[k]
+			k += 1
 
 	def update_s(self):
 		pass

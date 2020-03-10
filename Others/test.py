@@ -91,3 +91,6 @@ print(len(a))
 
 for i in range(20):
 	print(i)
+
+lista1 = [1,2,3,4]
+print(lista1[-1])
