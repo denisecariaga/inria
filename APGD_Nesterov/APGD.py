@@ -1,5 +1,5 @@
 import numpy as np
-from time import time
+from time import clock
 from math import sqrt, inf
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 
@@ -252,6 +252,7 @@ class APGDMethod:
 
 	# Solving the frictional contact problem with fixed rho
 	def APGD_N(self, tolerance_r, tolerance_s, iter_max):
+		start = clock()
 		# This for is to update the value of s
 		for j in range(1, iter_max):
 			# This while is to solve the problem with s fixed
@@ -274,9 +275,12 @@ class APGDMethod:
 					count += 1
 			if count < 1:
 				break
+		end = clock()
+		return end - start
 
 	# Solving the frictional contact problem with variable rho and ratio 1
 	def APGD1_V(self, tolerance_r, tolerance_s, iter_max):
+		start = clock()
 		# This for is to update the value of s
 		for j in range(1, iter_max):
 			# This while is to solve the problem with s fixed
@@ -301,9 +305,12 @@ class APGDMethod:
 					count += 1
 			if count < 1:
 				break
+		end = clock()
+		return end - start
 
 	# Solving the frictional contact problem with variable rho and ratio 2
 	def APGD2_V(self, tolerance_r, tolerance_s, iter_max):
+		start = clock()
 		# This for is to update the value of s
 		for j in range(1, iter_max):
 			# This while is to solve the problem with s fixed
@@ -328,3 +335,6 @@ class APGDMethod:
 					count += 1
 			if count < 1:
 				break
+
+		end = clock()
+		return end - start
