@@ -10,7 +10,7 @@ NUM_ITER = 1000
 
 ################## IMPORTING PROBLEMS ######################
 
-problems = os.listdir("ADMM_Master_scipy/ADMM/Data/box_stacks/")
+problems = os.listdir("ADMM/Data/box_stacks/")
 problems.sort()
 
 ##################### IMPORTING RHO ########################
@@ -56,7 +56,6 @@ for each_problem_data in list_master:
 pickle.dump(list_master, open("ratio_solver.p", "wb"))
 
 
-dict_master = pickle.load(open("ratio_solver.p", "rb" ) )
 
 #########################################################
 ######################### CODE ##########################
@@ -70,19 +69,19 @@ tau_ratio = np.arange(1.0,11.0,0.01)
 
 #Performance problem/solver
 performance_general = []
-for each_solver in range(len(all_solvers)):
-	performance_solver = []
-	for each_rho_ratio in rho_optimal_ratio:
-		performance_rho = []
-		for tau in tau_ratio:
-			cardinal_number = 0.0
-			for each_problem_data in dict_master:
-				if each_problem_data[each_solver][each_rho_ratio] <= tau:
-					cardinal_number += 1.0
-			performance_tau = cardinal_number / len(dict_master)
-			performance_rho.append(performance_tau)
-		performance_solver.append(performance_rho)
-	performance_general.append(performance_solver)
+
+performance_solver = []
+for each_rho_ratio in rho_optimal_ratio:
+	performance_rho = []
+	for tau in tau_ratio:
+		cardinal_number = 0.0
+		for each_problem_data in list_master:
+			if each_problem_data[each_rho_ratio] <= tau:
+				cardinal_number += 1.0
+		performance_tau = cardinal_number / len(list_master)
+		performance_rho.append(performance_tau)
+	performance_solver.append(performance_rho)
+performance_general.append(performance_solver)
 
 #Save the data
 pickle.dump(performance_general, open("performance_profile.p", "wb"))
@@ -91,16 +90,13 @@ pickle.dump(performance_general, open("performance_profile.p", "wb"))
 color = ['#9ACD32','#FFFF00','#40E0D0','#FF6347','#A0522D','#FA8072','#FFA500','#808000','#000080','#006400','#0000FF','#000000']
 #['yellowgreen','yellow','violet','turquoise','tomato','sienna','salmon','orange','olive','navy','darkgreen','blue','black']
 tau_ratio = np.arange(1.0,11.0,0.01)
-all_solvers = ['cp_N', 'cp_R', 'cp_RR', 'vp_N_He', 'vp_R_He', 'vp_RR_He', 'vp_N_Spectral', 'vp_R_Spectral', 'vp_RR_Spectral', 'vp_N_Wohlberg', 'vp_R_Wohlberg', 'vp_RR_Wohlberg']
-rho_optimal = ['acary', 'dicairano', 'ghadimi', 'normal']
 
 #Plot
-for each_rho_time in range(len(rho_optimal)):
-	for s in range(len(all_solvers)):
-		plt.plot(tau_ratio, performance_profile[s][each_rho_time], color[s], label = all_solvers[s])
-		plt.hold(True)
+for each_rho_time in range(len(rhos)):
+	plt.plot(tau_ratio, performance_general[each_rho_time], color[each_rho_time], label = '')
+	plt.hold(True)
 	plt.ylabel('Performance')
 	plt.xlabel('Tau')
-	plt.title('Performance profiles for '+rho_optimal[each_rho_time])
+	plt.title('Performance profiles for '+rhos[each_rho_time])
 	plt.legend()
 	plt.show()
