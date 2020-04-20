@@ -3,16 +3,15 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+from APGD_Nesterov.Data.read_fclib import *
 
 NUM_ITER = 1000
 
-
-
 ################## IMPORTING PROBLEMS ######################
-
-problems = os.listdir("ADMM/Data/box_stacks/")
+dir = "/Users/denisecarolinacariagasandoval/inria/APGD_Nesterov/Data/box_stacks"
+problems = os.listdir(dir)
 problems.sort()
-
+print('etapa0')
 ##################### IMPORTING RHO ########################
 
 rhos = ['NormalRho', 'SmallerRho', 'WRho', 'EigenWRho', 'GhadimiRho', 'DiCairamoRho', 'AcaryRho']
@@ -21,19 +20,23 @@ rhos = ['NormalRho', 'SmallerRho', 'WRho', 'EigenWRho', 'GhadimiRho', 'DiCairamo
 list_master = []
 
 for problem in problems:
+	print('etapa0.4')
+	pr = hdf5_file(problem)
+	print('open problem')
 	##################### IMPORTING DATA ######################
 	data = APGD.Data(problem)
-
+	print(type(data))
+	print('etapa0.5')
 	dict_problem = {'problem': problem, 'solver': 'APGD_rho_fixed'}
 	for rho in rhos:
-		timing = APGD.APGDMethod(data, rho)
+		timing = APGD.APGDMethod(data, rho).APGD_N(10**(-3),10**(-3),NUM_ITER)
 		dict_problem[rho+'(time)'] = timing
 	list_master.append(dict_problem)
 
 # Save the data
 pickle.dump(list_master, open('time_solver.p', 'wb'))
 
-
+print('etapa1')
 #########################################################
 ######################### CODE ##########################
 #########################################################
@@ -55,7 +58,7 @@ for each_problem_data in list_master:
 #Save the data
 pickle.dump(list_master, open("ratio_solver.p", "wb"))
 
-
+print('etapa2')
 
 #########################################################
 ######################### CODE ##########################
@@ -85,7 +88,7 @@ performance_general.append(performance_solver)
 
 #Save the data
 pickle.dump(performance_general, open("performance_profile.p", "wb"))
-
+print('etapa3')
 
 color = ['#9ACD32','#FFFF00','#40E0D0','#FF6347','#A0522D','#FA8072','#FFA500','#808000','#000080','#006400','#0000FF','#000000']
 #['yellowgreen','yellow','violet','turquoise','tomato','sienna','salmon','orange','olive','navy','darkgreen','blue','black']

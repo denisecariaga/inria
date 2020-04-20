@@ -3,7 +3,7 @@ from time import clock
 from math import sqrt, inf
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 
-from ADMM.Data.read_fclib import *
+from APGD_Nesterov.Data.read_fclib import *
 
 
 
@@ -20,23 +20,25 @@ class Data:
 
 	def __init__(self, problem_data):
 		problem = hdf5_file(problem_data)
+		print('open problem')
 
-		self.M = problem.M.tocsc()
+		self.M = problem.M.tocsc().toarray()
 		self.f = problem.f
-		self.H = csc_matrix.transpose(problem.H.tocsc())
-		self.H_T = csr_matrix.transpose(self.H)
+		self.H = csc_matrix.transpose(problem.H.tocsc()).toarray()
+		self.H_T = np.matrix.transpose(self.H)
 		self.w = problem.w
-		self.W = csr_matrix.multi_dot(self.H_T, np.linalg.inv(self.M), self.H)
-		self.q = self.w - csr_matrix.multi_dot(self.H_T, np.linalg.inv(self.M), self.f)
+		print(len(self.f))
+		self.W = np.matrix.dot(self.H, np.matrix.dot(np.linalg.inv(self.M), self.H_T))
+		self.q = self.w - np.matrix.dot(self.H, np.matrix.dot(np.linalg.inv(self.M), self.f))
 		self.mu = problem.mu
 		self.g = 10 ** (-6)
 
 		# Dimensions (normal,tangential,tangential)
 		self.m = np.shape(self.w)[0]
 		self.n = np.shape(self.M)[0]
-		self.nc = self.n / 3
+		self.nc = self.m / 3
 
-		self.s = [1 / linalg.norm(self.H, 'fro') * self.Es_matrix(np.ones([self.m, ])) /
+		self.s = [1 / np.linalg.norm(self.H, 'fro') * self.Es_matrix(np.ones([self.m, ])) /
 		          np.linalg.norm(self.Es_matrix(np.ones([self.m, ])))]
 
 		#################################
@@ -150,7 +152,7 @@ class APGDMethod:
 		self.nc = problem_data.nc  # m/3
 		self.mu = problem_data.mu
 		self.dim1 = 3
-		self.rho = rho_class(self.W, self.M, self.H).rho()
+		self.rho = eval(rho_class)(self.W, self.M, self.H).rho()
 		self.g = problem_data.g
 		self.v = problem_data.v
 		self.u = problem_data.u
