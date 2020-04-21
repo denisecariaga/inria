@@ -20,7 +20,7 @@ class Data:
 
 	def __init__(self, problem_data):
 		problem = hdf5_file(problem_data)
-		print('open problem')
+		print(f'open problem {problem_data}')
 
 		self.M = problem.M.tocsc().toarray()
 		self.f = problem.f
@@ -49,9 +49,9 @@ class Data:
 		self.v = [np.zeros([self.n, ])]
 		self.u = [np.zeros([self.m, ])]
 		self.r = [np.zeros([self.m, ])]
-		self.res = [np.zeros([self.m, ])]  # residual
+		self.res = [] # residual
 
-		self.res_norm = [0, 0]
+		self.res_norm = []
 
 
 ##########################################################
@@ -133,7 +133,7 @@ class AcaryRho:
 		self.H = H
 
 	def rho(self):
-		return np.linalg.norm(self.M.toarray(), ord=1) / np.linalg.norm(self.H.toarray(), ord=1)
+		return np.linalg.norm(self.M, ord=1) / np.linalg.norm(self.H, ord=1)
 
 
 ##########################################################
@@ -173,7 +173,9 @@ class APGDMethod:
 
 	# Formula to project a vector into the cone
 	def project(self, vector):
-		vector_per_contact = np.split(vector, self.nc)
+		print(f'largo nc:{(self.nc)}')
+		print(f'largo vector: {len(vector)}')
+		vector_per_contact = np.split(vector[0], self.nc)
 		projected = np.array([])
 
 		for i in range(int(self.nc)):
@@ -193,19 +195,39 @@ class APGDMethod:
 		return projected
 
 	def accelerate(self, k):
-		return self.r[k - 1] + ((k - 2) / (k + 1)) * (self.r[k - 1] - self.r[k - 2])
+		if k==1:
+			print(f'entro al accelerate en k={k}')
+			ret = np.zeros([self.m,])
+		elif k==2:
+			ret = np.zeros([self.m,])
+		else:
+			print(f'entro al acceletatee en k={k}')
+			ret = self.r[k - 1] + ((k - 2) / (k + 1)) * (self.r[k - 1] - self.r[k - 2])
+		print(f'acerrerate en k={k} es {ret}')
+		return ret
 
 	def update_r(self, k):
-		self.r.append(self.project(
-			self.accelerate(k) - self.rho * (csr_matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
+		print(f'valor de k={k} en el update de r ')
+		if k==1:
+			print(f'entro en el k={k} aca')
+			r = np.zeros([self.m,])
+		else:
+			print(f'entro en el resto de k={k} aca')
+			r = self.project(
+			self.accelerate(k) - self.rho * (np.matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s)))
+			print(f'valor de r en k={k} es {r}')
+		self.r.append(r)
 
 	def residual_update(self, k):
-		res = (1 / (self.m * self.g)) * (self.r[k] - self.project(
-			self.r[k] - self.g * (csr_matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
-		self.res.append(res)
+		print(f'valor del r[k-1] en la actualizacion de residuo {self.r[k-1]}')
+		residual = (1 / (self.m * self.g)) * (self.r[k-1] - self.project(
+			self.r[k-1] - self.g * (np.matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
+		self.res.append(residual)
 
 	def norm_update(self, k):
-		self.res_norm.append(np.linalg.norm(self.res[k].toarray(), ord=2))
+		print('valor de k:{k}')
+		print(f'largo del vector res: {len(self.res)}')
+		self.res_norm.append(np.linalg.norm(self.res[k-1], ord=2))
 
 	# Updating rho usind radio 1
 	def update_rho_1(self, k, L, L_min, factor, rho_k_minus_1):
@@ -261,23 +283,34 @@ class APGDMethod:
 			k = 1
 			error = inf
 			while error > tolerance_r and k < iter_max:
+				print(f'valor de k en la funcion ppal:{k}')
 				self.update_r(k)
+				self.residual_update(k)
 				self.norm_update(k)
-				error = self.res_norm[k]
-				k += 1
+				print(self.norm_update(k))
+				print(self.res_norm)
+				error = self.res_norm[k-1]
+				print(f'error pasado: {error}')
+				print(f'tolerance: {tolerance_r}')
+				print(error>tolerance_r)
+				k = k+1
+				print((k))
+				print(f'vlaor de k al actualizarlo:{k}')
 			#Updating the value of s
 			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
 			s_per_contact_j1 = np.split(self.s[-1], self.nc)
 			s_per_contact_j0 = np.split(self.s[-2], self.nc)
 			count = 0
 			# Stopping condition of s
-			for i in range(self.nc):
+			for i in range(int(self.nc)):
 				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
 						s_per_contact_j0[i]) > tolerance_s:
 					count += 1
 			if count < 1:
 				break
+		print('ingreso al s')
 		end = clock()
+		print(end-start)
 		return end - start
 
 	# Solving the frictional contact problem with variable rho and ratio 1
