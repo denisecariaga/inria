@@ -232,19 +232,19 @@ class APGDMethod:
 	# Updating rho usind radio 1
 	def update_rho_1(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
-		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
+		vector = self.r[k-1] - rho_k * (np.matrix.dot(self.W, self.r[k-1]) + (self.q + self.s))
 		bar_r_k = self.project(vector)
 
-		ratio_k = rho_k * (np.linalg.norm(csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k), ord=2)
-		                   * (1 / np.linalg.norm(self.r[k] - bar_r_k)))
+		ratio_k = rho_k * (np.linalg.norm(np.matrix.dot(self.W, self.r[k-1]) - np.matrix.dot(self.W, bar_r_k), ord=2)
+		                   * (1 / np.linalg.norm(self.r[k-1] - bar_r_k)))
 		while ratio_k > L:
 			rho_k = factor * rho_k
-			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
+			vector = self.r[k-1] - rho_k * (np.matrix.dot(self.r[k-1],self.W) + (self.q + self.s))
 			bar_r_k = self.project(vector)
 
 			ratio_k = rho_k * (
-					np.linalg.norm(csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k), ord=2)
-					* (1 / np.linalg.norm(self.r[k] - bar_r_k)))
+					np.linalg.norm(np.matrix.dot(self.W, self.r[k-1]) - np.matrix.dot(self.W, bar_r_k), ord=2)
+					* (1 / np.linalg.norm(self.r[k-1] - bar_r_k)))
 		if ratio_k < L_min:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
@@ -252,20 +252,20 @@ class APGDMethod:
 	# Updating rho using radio 2
 	def update_rho_2(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
-		vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
+		vector = self.r[k-1] - rho_k * (np.matrix.dot(self.W, self.r[k]) + (self.q + self.s))
 		bar_r_k = self.project(vector)
 
-		ratio_k = rho_k * (np.transpose(self.r[k] - bar_r_k)
-		                   * (csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k))
-		                   * ((1 / np.linalg.norm(self.r[k] - bar_r_k)) ** 2))
+		ratio_k = rho_k * (np.transpose(self.r[k-1] - bar_r_k)
+		                   * (np.matrix.dot(self.W, self.r[k-1]) - np.matrix.dot(self.W, bar_r_k))
+		                   * ((1 / np.linalg.norm(self.r[k-1] - bar_r_k)) ** 2))
 		while ratio_k > L:
 			rho_k = factor * rho_k
-			vector = self.r[k] - rho_k * (csr_matrix.dot(self.W, self.r[k]) + (self.q + self.s))
+			vector = self.r[k-1] - rho_k * (np.matrix.dot(self.r[k-1], self.W) + (self.q + self.s))
 			bar_r_k = self.project(vector)
 
-			ratio_k = rho_k * (np.transpose(self.r[k] - bar_r_k)
-			                   * (csr_matrix.dot(self.W, self.r[k]) - csr_matrix.dot(self.W, bar_r_k))
-			                   * ((1 / np.linalg.norm(self.r[k] - bar_r_k)) ** 2))
+			ratio_k = rho_k * (np.transpose(self.r[k-1] - bar_r_k)
+			                   * (np.matrix.dot(self.W, self.r[k]) - np.matrix.dot(self.W, bar_r_k))
+			                   * ((1 / np.linalg.norm(self.r[k-1] - bar_r_k)) ** 2))
 		if ratio_k < L_min:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
@@ -283,19 +283,11 @@ class APGDMethod:
 			k = 1
 			error = inf
 			while error > tolerance_r and k < iter_max:
-				print(f'valor de k en la funcion ppal:{k}')
 				self.update_r(k)
 				self.residual_update(k)
 				self.norm_update(k)
-				print(self.norm_update(k))
-				print(self.res_norm)
 				error = self.res_norm[k-1]
-				print(f'error pasado: {error}')
-				print(f'tolerance: {tolerance_r}')
-				print(error>tolerance_r)
 				k = k+1
-				print((k))
-				print(f'vlaor de k al actualizarlo:{k}')
 			#Updating the value of s
 			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
 			s_per_contact_j1 = np.split(self.s[-1], self.nc)
@@ -321,12 +313,13 @@ class APGDMethod:
 			# This while is to solve the problem with s fixed
 			k = 1
 			error = inf
-			self.rho = 1   # Fixing the first rho
+			#self.rho = 1   # Fixing the first rho
 			while error > tolerance_r and k < iter_max:
 				self.rho = self.update_rho_1(k, 0.9, 0.3, 2/3, self.rho)
 				self.update_r(k)
+				self.residual_update(k)
 				self.norm_update(k)
-				error = self.res_norm[k]
+				error = self.res_norm[k-1]
 				k += 1
 			# Updating the value of s
 			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
@@ -334,7 +327,7 @@ class APGDMethod:
 			s_per_contact_j0 = np.split(self.s[-2], self.nc)
 			count = 0
 			# Stopping condition of s
-			for i in range(self.nc):
+			for i in range(int(self.nc)):
 				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
 						s_per_contact_j0[i]) > tolerance_s:
 					count += 1
@@ -355,8 +348,9 @@ class APGDMethod:
 			while error > tolerance_r and k < iter_max:
 				self.rho = self.update_rho_2(k, 0.9, 0.3, 2/3, self.rho)
 				self.update_r(k)
+				self.residual_update(k)
 				self.norm_update(k)
-				error = self.res_norm[k]
+				error = self.res_norm[k-1]
 				k += 1
 			# Updating the value of s
 			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
