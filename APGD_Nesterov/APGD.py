@@ -1,6 +1,6 @@
 import numpy as np
 from time import clock
-from math import sqrt, inf
+from math import sqrt, inf, isnan
 from scipy.sparse import linalg, csr_matrix, csc_matrix
 
 from APGD_Nesterov.Data.read_fclib import *
@@ -20,14 +20,12 @@ class Data:
 
 	def __init__(self, problem_data):
 		problem = hdf5_file(problem_data)
-		print(f'open problem {problem_data}')
 
 		self.M = problem.M.tocsc().toarray()
 		self.f = problem.f
 		self.H = csc_matrix.transpose(problem.H.tocsc()).toarray()
 		self.H_T = np.matrix.transpose(self.H)
 		self.w = problem.w
-		print(len(self.f))
 		self.W = np.matrix.dot(self.H, np.matrix.dot(np.linalg.inv(self.M), self.H_T))
 		self.q = self.w - np.matrix.dot(self.H, np.matrix.dot(np.linalg.inv(self.M), self.f))
 		self.mu = problem.mu
@@ -173,8 +171,6 @@ class APGDMethod:
 
 	# Formula to project a vector into the cone
 	def project(self, vector):
-		print(f'largo nc:{(self.nc)}')
-		print(f'largo vector: {len(vector)}')
 		vector_per_contact = np.split(vector[0], self.nc)
 		projected = np.array([])
 
@@ -196,37 +192,27 @@ class APGDMethod:
 
 	def accelerate(self, k):
 		if k==1:
-			print(f'entro al accelerate en k={k}')
 			ret = np.zeros([self.m,])
 		elif k==2:
 			ret = np.zeros([self.m,])
 		else:
-			print(f'entro al acceletatee en k={k}')
 			ret = self.r[k - 1] + ((k - 2) / (k + 1)) * (self.r[k - 1] - self.r[k - 2])
-		print(f'acerrerate en k={k} es {ret}')
 		return ret
 
 	def update_r(self, k):
-		print(f'valor de k={k} en el update de r ')
 		if k==1:
-			print(f'entro en el k={k} aca')
 			r = np.zeros([self.m,])
 		else:
-			print(f'entro en el resto de k={k} aca')
 			r = self.project(
 			self.accelerate(k) - self.rho * (np.matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s)))
-			print(f'valor de r en k={k} es {r}')
 		self.r.append(r)
 
 	def residual_update(self, k):
-		print(f'valor del r[k-1] en la actualizacion de residuo {self.r[k-1]}')
 		residual = (1 / (self.m * self.g)) * (self.r[k-1] - self.project(
 			self.r[k-1] - self.g * (np.matrix.dot(self.W, self.accelerate(k)) + (self.q + self.s))))
 		self.res.append(residual)
 
 	def norm_update(self, k):
-		print('valor de k:{k}')
-		print(f'largo del vector res: {len(self.res)}')
 		self.res_norm.append(np.linalg.norm(self.res[k-1], ord=2))
 
 	# Updating rho usind radio 1
@@ -252,20 +238,16 @@ class APGDMethod:
 	# Updating rho using radio 2
 	def update_rho_2(self, k, L, L_min, factor, rho_k_minus_1):
 		rho_k = rho_k_minus_1
-		vector = self.r[k-1] - rho_k * (np.matrix.dot(self.W, self.r[k]) + (self.q + self.s))
+		vector = self.r[k-1] - rho_k * (np.matrix.dot(self.W, self.r[k-1]) + (self.q + self.s))
 		bar_r_k = self.project(vector)
 
-		ratio_k = rho_k * (np.transpose(self.r[k-1] - bar_r_k)
-		                   * (np.matrix.dot(self.W, self.r[k-1]) - np.matrix.dot(self.W, bar_r_k))
-		                   * ((1 / np.linalg.norm(self.r[k-1] - bar_r_k)) ** 2))
-		while ratio_k > L:
-			rho_k = factor * rho_k
-			vector = self.r[k-1] - rho_k * (np.matrix.dot(self.r[k-1], self.W) + (self.q + self.s))
-			bar_r_k = self.project(vector)
-
-			ratio_k = rho_k * (np.transpose(self.r[k-1] - bar_r_k)
-			                   * (np.matrix.dot(self.W, self.r[k]) - np.matrix.dot(self.W, bar_r_k))
-			                   * ((1 / np.linalg.norm(self.r[k-1] - bar_r_k)) ** 2))
+		ratio_k = rho_k*(np.matrix.dot((np.matrix.dot(self.r[k-1], self.W) - np.matrix.dot(self.W, bar_r_k)),(self.r[k-1] - bar_r_k)))* ((1 / np.linalg.norm(self.r[k-1] - bar_r_k)) ** 2)
+		if not isnan(ratio_k):
+			while ratio_k > L:
+				rho_k = factor * rho_k
+				vector = self.r[k-1] - rho_k * (np.matrix.dot(self.r[k-1], self.W) + (self.q + self.s))
+				bar_r_k = self.project(vector)
+				ratio_k = rho_k*(np.matrix.dot((np.matrix.dot(self.r[k-1], self.W) - np.matrix.dot(self.W, bar_r_k)),(self.r[k-1] - bar_r_k)))* ((1 / np.linalg.norm(self.r[k-1] - bar_r_k)) ** 2)
 		if ratio_k < L_min:
 			rho_k = (1 / factor) * rho_k
 		return rho_k
@@ -300,9 +282,7 @@ class APGDMethod:
 					count += 1
 			if count < 1:
 				break
-		print('ingreso al s')
 		end = clock()
-		print(end-start)
 		return end - start
 
 	# Solving the frictional contact problem with variable rho and ratio 1
@@ -344,7 +324,7 @@ class APGDMethod:
 			# This while is to solve the problem with s fixed
 			k = 1
 			error = inf
-			self.rho = 1  # Fixing the first rho
+			#self.rho = 1  # Fixing the first rho
 			while error > tolerance_r and k < iter_max:
 				self.rho = self.update_rho_2(k, 0.9, 0.3, 2/3, self.rho)
 				self.update_r(k)
@@ -358,7 +338,7 @@ class APGDMethod:
 			s_per_contact_j0 = np.split(self.s[-2], self.nc)
 			count = 0
 			# Stopping condition of s
-			for i in range(self.nc):
+			for i in range(int(self.nc)):
 				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
 						s_per_contact_j0[i]) > tolerance_s:
 					count += 1
