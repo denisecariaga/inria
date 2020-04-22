@@ -4,9 +4,10 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from APGD_Nesterov.Data.read_fclib import *
+import time
 
 NUM_ITER = 200
-
+inicio = time.clock()
 ################## IMPORTING PROBLEMS ######################
 dir = "/Users/denisecarolinacariagasandoval/inria/APGD_Nesterov/Data/box_stacks"
 problems = os.listdir(dir)
@@ -84,13 +85,16 @@ for each_rho_ratio in rho_optimal_ratio:
 	performance_solver.append(performance_rho)
 performance_general.append(performance_solver)
 
-
+fin = time.clock()
 
 #Save the data
 pickle.dump(performance_general, open("performance_profile.p", "wb"))
 
 color = ['#9ACD32','#40E0D0','#A0522D','#FA8072','#808000','#000080','#006400','#000000']
 #['yellowgreen','violet','turquoise','tomato','sienna','orange','olive','navy','darkgreen','black']
+
+print(f'tiempo total: {fin-inicio}')
+
 
 #Plot
 for rho in range(7):

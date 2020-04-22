@@ -38,7 +38,8 @@ class Data:
 
 		self.s = [1 / np.linalg.norm(self.H, 'fro') * self.Es_matrix(np.ones([self.m, ])) /
 		          np.linalg.norm(self.Es_matrix(np.ones([self.m, ])))]
-
+		print(f'm={self.m}')
+		print(f's={len(self.s[0])}')
 		#################################
 		############# SET-UP ############
 		#################################
@@ -288,11 +289,14 @@ class APGDMethod:
 	# Solving the frictional contact problem with variable rho and ratio 1
 	def APGD1_V(self, tolerance_r, tolerance_s, iter_max):
 		start = clock()
+		list_rho = []
+		list_error_s_general_norm = []
 		# This for is to update the value of s
 		for j in range(1, iter_max):
 			# This while is to solve the problem with s fixed
 			k = 1
 			error = inf
+			list_rho.append(self.rho)
 			#self.rho = 1   # Fixing the first rho
 			while error > tolerance_r and k < iter_max:
 				self.rho = self.update_rho_1(k, 0.9, 0.3, 2/3, self.rho)
@@ -305,16 +309,21 @@ class APGDMethod:
 			self.s.append(self.Es_matrix(csr_matrix.dot(self.W, self.r[-1]) + self.q))
 			s_per_contact_j1 = np.split(self.s[-1], self.nc)
 			s_per_contact_j0 = np.split(self.s[-2], self.nc)
+			list_error_s_it = []
 			count = 0
 			# Stopping condition of s
 			for i in range(int(self.nc)):
-				if np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
-						s_per_contact_j0[i]) > tolerance_s:
+				error_s_contact_i = np.linalg.norm(s_per_contact_j1[i] - s_per_contact_j0[i]) / np.linalg.norm(
+						s_per_contact_j0[i])
+				list_error_s_it.append(error_s_contact_i)
+				if  error_s_contact_i > tolerance_s:
 					count += 1
+			list_error_s_general_norm.append(np.linalg.norm(list_error_s_it))
 			if count < 1:
 				break
 		end = clock()
-		return end - start
+		timing = end-start
+		return [timing, self.s, list_rho, list_error_s_general_norm ]
 
 	# Solving the frictional contact problem with variable rho and ratio 2
 	def APGD2_V(self, tolerance_r, tolerance_s, iter_max):
